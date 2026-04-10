@@ -89,7 +89,35 @@
 
     <script>
         const API = "http://127.0.0.1:8000";
+        const modalCrear = document.getElementById("modalCrear");
 
+        function sumarDiasHabiles(fechaBase, diasHabiles) {
+            const fecha = new Date(fechaBase);
+            let restantes = diasHabiles;
+
+            while (restantes > 0) {
+                fecha.setDate(fecha.getDate() + 1);
+                const diaSemana = fecha.getDay();
+                if (diaSemana !== 0 && diaSemana !== 6) {
+                    restantes--;
+                }
+            }
+            return fecha;
+        }
+
+        function formatearFechaISO(fecha) {
+            const year = fecha.getFullYear();
+            const month = String(fecha.getMonth() + 1).padStart(2, "0");
+            const day = String(fecha.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        }
+
+        function precargarFechaDevolucion() {
+            const fechaInput = document.getElementById("crear_fecha_dev");
+            const hoy = new Date();
+            const fechaDefault = sumarDiasHabiles(hoy, 7);
+            fechaInput.value = formatearFechaISO(fechaDefault);
+        }
         // ================= CARGAR EJEMPLARES =================
 async function cargarEjemplaresLibro() {
 
@@ -178,6 +206,7 @@ async function cargarSelects() {
 
     
     cargarEjemplaresLibro();
+    precargarFechaDevolucion();
 }
         // ================= CREAR =================
         async function crearPrestamo() {
@@ -241,6 +270,7 @@ async function cargarSelects() {
         // ================= INIT =================
         cargarPrestamos();
         cargarSelects();
+        modalCrear.addEventListener('shown.bs.modal', precargarFechaDevolucion);
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

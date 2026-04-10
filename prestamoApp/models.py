@@ -3,7 +3,15 @@ from datetime import date, timedelta
 
 # Create your models here.
 def fecha_devolucion_default():
-    return date.today() + timedelta(days=7)
+    dias_habiles = 0
+    fecha = date.today()
+
+    while dias_habiles < 7:
+        fecha += timedelta(days=1)
+        if fecha.weekday() < 5:  # lunes=0 ... viernes=4
+            dias_habiles += 1
+
+    return fecha
 
 class prestamo(models.Model):
     ejemplar = models.ForeignKey('librosApp.Ejemplar', on_delete=models.PROTECT)
@@ -13,9 +21,9 @@ class prestamo(models.Model):
     dias_atraso = models.IntegerField(default=0)
     estado = models.CharField(max_length=1, choices=[
         ('P', 'Prestado'),
-        ('D', 'Disponible'),
+        ('D', 'Devuelto'),
         ('A', 'Atrasado')
-    ],    default='D')
+    ],    default='P')
     activo = models.BooleanField(default=True) 
 
 def __str__(self):
