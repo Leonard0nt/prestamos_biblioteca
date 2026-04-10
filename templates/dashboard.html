@@ -29,12 +29,13 @@
 
             <h2 class="mb-4">📦 Gestión de Préstamos</h2>
 
-            <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#modalCrear">
+            <input type="text" id="buscadorPrestamos" class="form-control mb-3" placeholder="🔍 Buscar..."
+                onkeyup="filtrarPrestamos()">
+
+            <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#modalCrear">
                 ➕ Nuevo Préstamo
             </button>
 
-            <input type="text" id="buscadorPrestamos" class="form-control mb-3" placeholder="🔍 Buscar..."
-                onkeyup="filtrarPrestamos()">
 
             <div style="max-height: 400px; overflow-y: auto;">
                 <table class="table table-striped">
@@ -215,7 +216,7 @@ async function cargarSelects() {
             const ejemplar = document.getElementById("crear_ejemplar").value;
             const fecha_devolucion = document.getElementById("crear_fecha_dev").value;
 
-            await fetch(`${API}/prestamos/`, {
+            const response = await fetch(`${API}/prestamos/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -224,13 +225,15 @@ async function cargarSelects() {
                     fecha_devolucion
                 })
             });
-            ejemplar.estado = 'P'
-            console.log("Libro ID:", libroId);
-            if (!libroId || libroId === "undefined") {
-    console.error("ID inválido");
-    return;
-}
-            cargarPrestamos();
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                alert(errorData.detail || errorData.non_field_errors?.[0] || "No se pudo registrar el préstamo");
+                return;
+            }
+
+            await cargarPrestamos();
+            await cargarEjemplaresLibro();
             bootstrap.Modal.getInstance(document.getElementById('modalCrear')).hide();
         }
 
@@ -240,7 +243,6 @@ async function cargarSelects() {
             await fetch(`${API}/prestamos/${id}/devolver/`, {
                 method: "POST"
             });
-            ejemplar.estado = 'D'
             cargarPrestamos();
         }
 
