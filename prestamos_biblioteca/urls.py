@@ -4,7 +4,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 from librosApp.views import EjemplarViewSet, LibroViewSet
 from prestamoApp.views import PrestamoViewSet
-from usuarioApp.views import EncargadoBibliotecaViewSet, UsuarioViewSet
+from usuarioApp.views import EncargadoBibliotecaViewSet, UsuarioViewSet, login_view, logout_view
 
 router = DefaultRouter()
 
@@ -16,7 +16,9 @@ router.register(r'ejemplares', EjemplarViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', PrestamoViewSet.dashboard),
+    path('', PrestamoViewSet.dashboard, name='dashboard'),
+    path('login/', login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
 
     # UI
     path('usuarios-ui/', UsuarioViewSet.usuarios_view, name='usuarios_ui'),

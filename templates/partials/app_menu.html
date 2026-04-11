@@ -71,6 +71,8 @@
     <header class="hero">
         <h1>📚 Sistema de Biblioteca</h1>
         <p class="mb-0">Navega entre módulos sin volver atrás manualmente.</p>
+        <small class="d-block mt-2">Rol: {% if request.user.is_superuser %}Administrador{% else %}Encargado{% endif %}</small>
+        <a href="/logout/" class="btn btn-sm btn-light mt-3">Cerrar sesión</a>
     </header>
 
     <nav class="tabs {% if request.user.is_superuser %}tabs-admin{% else %}tabs-encargado{% endif %}">
