@@ -15,14 +15,6 @@
                 <h1 class="h4 text-center mb-3">📚 Sistema de Biblioteca</h1>
                 <p class="text-center text-secondary mb-4">Inicia sesión como administrador o encargado.</p>
 
-                {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }}" role="alert">
-                    {{ message }}
-                </div>
-                {% endfor %}
-                {% endif %}
-
                 <form method="post" novalidate>
                     {% csrf_token %}
                     <div class="mb-3">
