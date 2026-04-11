@@ -43,6 +43,7 @@ thead th {
                             <th>RUT</th>
                             <th>Correo</th>
                             <th>Creado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="tablaEncargados"></tbody>
@@ -76,6 +77,32 @@ thead th {
         </div>
     </div>
 
+    <div class="modal fade" id="modalEditarEncargado">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5>Editar Encargado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="edit_id">
+                    <input id="edit_nombre" class="form-control mb-2" placeholder="Nombre">
+                    <input id="edit_rut"
+                           class="form-control mb-2"
+                           placeholder="12.345.678-5"
+                           oninput="formatearRUT(this)"
+                           onblur="validarRUT(this)">
+                    <div id="error_rut_edit" class="text-danger small"></div>
+                    <input id="edit_correo" class="form-control mb-2" placeholder="Correo">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-warning" onclick="guardarEdicion()">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
 const API = "http://127.0.0.1:8000";
 
@@ -103,7 +130,9 @@ function formatearRUT(input) {
 }
 
 function validarRUT(input) {
-    const errorDiv = document.getElementById('error_rut_crear');
+    const errorDiv = input.id && input.id.includes("crear")
+        ? document.getElementById("error_rut_crear")
+        : document.getElementById("error_rut_edit");
     const rut = input.value;
     let valor = rut.replace(/\./g, '').replace('-', '');
 
@@ -142,8 +171,7 @@ async function cargarEncargados() {
     const res = await fetch(`${API}/encargados/`);
 
     if (!res.ok) {
-        document.getElementById("tablaEncargados").innerHTML = `<tr><td colspan="4">Debes iniciar sesión como administrador para gestionar encargados.</td></tr>`;
-        return;
+        document.getElementById("tablaEncargados").innerHTML = `<tr><td colspan="5">Debes iniciar sesión como administrador para gestionar encargados.</td></tr>`;
     }
 
     const data = await res.json();
@@ -157,6 +185,14 @@ async function cargarEncargados() {
                 <td>${e.rut}</td>
                 <td>${e.correo}</td>
                 <td>${new Date(e.creado_en).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm" onclick='abrirEditar(${JSON.stringify(e)})'>
+                        Editar
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="eliminarEncargado(${e.id})">
+                        Eliminar
+                    </button>
+                </td>
             </tr>
         `;
     });
@@ -208,6 +244,71 @@ async function crearEncargado() {
     }
 
     bootstrap.Modal.getInstance(document.getElementById('modalCrearEncargado')).hide();
+    cargarEncargados();
+}
+
+function abrirEditar(e) {
+    document.getElementById("edit_id").value = e.id;
+    document.getElementById("edit_nombre").value = e.nombre;
+    document.getElementById("edit_rut").value = e.rut;
+    document.getElementById("edit_correo").value = e.correo;
+
+    const modal = new bootstrap.Modal(document.getElementById("modalEditarEncargado"));
+    modal.show();
+}
+
+async function guardarEdicion() {
+    const id = document.getElementById("edit_id").value;
+    const rutInput = document.getElementById("edit_rut");
+
+    if (!validarRUT(rutInput)) {
+        alert("RUT inválido");
+        return;
+    }
+
+    const payload = {
+        nombre: document.getElementById("edit_nombre").value,
+        rut: rutInput.value,
+        correo: document.getElementById("edit_correo").value,
+    };
+
+    const response = await fetch(`${API}/encargados/${id}/`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": getCookie("csrftoken")
+        },
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        alert(data.detail || data.rut?.[0] || data.correo?.[0] || "No se pudo actualizar el encargado");
+        return;
+    }
+
+    bootstrap.Modal.getInstance(document.getElementById('modalEditarEncargado')).hide();
+    cargarEncargados();
+}
+
+async function eliminarEncargado(id) {
+    if (!confirm("¿Eliminar encargado?")) return;
+
+    const response = await fetch(`${API}/encargados/${id}/`, {
+        method: "DELETE",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken")
+        },
+        credentials: "same-origin"
+    });
+
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        alert(data.detail || "No se pudo eliminar el encargado");
+        return;
+    }
+
     cargarEncargados();
 }
 

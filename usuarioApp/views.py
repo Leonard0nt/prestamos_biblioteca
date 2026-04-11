@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from rest_framework import permissions, viewsets
+from rest_framework.response import Response
+from rest_framework import status
 
 from .models import EncargadoBiblioteca, usuario
 from .serializers import EncargadoBibliotecaSerializer, UsuarioSerializer
@@ -104,3 +106,13 @@ class EncargadoBibliotecaViewSet(viewsets.ModelViewSet):
     @user_passes_test(lambda u: u.is_authenticated and u.is_superuser)
     def encargados_view(request):
         return render(request, 'encargados.html')
+
+    def destroy(self, request, *args, **kwargs):
+        encargado = self.get_object()
+        user = encargado.user
+        encargado.delete()
+
+        if user:
+            user.delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)

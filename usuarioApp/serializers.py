@@ -45,3 +45,27 @@ class EncargadoBibliotecaSerializer(serializers.ModelSerializer):
         encargado = EncargadoBiblioteca.objects.create(user=user, **validated_data)
         encargado.password_temporal = password_temporal
         return encargado
+
+    def update(self, instance, validated_data):
+        user = instance.user
+
+        instance.nombre = validated_data.get('nombre', instance.nombre)
+        instance.rut = validated_data.get('rut', instance.rut)
+        instance.correo = validated_data.get('correo', instance.correo)
+        instance.save()
+
+        if user:
+            user.first_name = instance.nombre
+            user.email = instance.correo
+
+            base_username = instance.rut.replace('.', '').replace('-', '').lower()
+            username = base_username
+            idx = 1
+            while User.objects.filter(username=username).exclude(pk=user.pk).exists():
+                username = f"{base_username}{idx}"
+                idx += 1
+
+            user.username = username
+            user.save()
+
+        return instance
