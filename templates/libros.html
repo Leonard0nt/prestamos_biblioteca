@@ -56,6 +56,9 @@ thead, tbody, tr, td, th {
             <tbody id="tablaLibros"></tbody>
         </table>
         </div>
+        <nav class="mt-3" aria-label="Paginación libros">
+            <ul class="pagination justify-content-center mb-0" id="paginacionLibros"></ul>
+        </nav>
 
     </div>
 </div>
@@ -178,6 +181,9 @@ thead, tbody, tr, td, th {
 </div>
 <script>
 const API = "http://127.0.0.1:8000";
+const REGISTROS_POR_PAGINA = 20;
+let librosData = [];
+let librosPaginaActual = 1;
 
 let libroActual = null;
 let tituloActual = "";
@@ -185,12 +191,37 @@ let tituloActual = "";
 // ================= CARGAR =================
 async function cargarLibros() {
     const res = await fetch(`${API}/libros/`);
-    const data = await res.json();
+    librosData = await res.json();
+    librosPaginaActual = 1;
+    renderizarTablaLibros();
+}
 
+function obtenerLibrosFiltrados() {
+    const filtro = document.getElementById("buscadorLibros").value.toLowerCase();
+    return librosData.filter((libro) => {
+        return (
+            libro.titulo.toLowerCase().includes(filtro) ||
+            libro.autor.toLowerCase().includes(filtro) ||
+            libro.editorial.toLowerCase().includes(filtro) ||
+            libro.isbn.toLowerCase().includes(filtro)
+        );
+    });
+}
+
+function renderizarTablaLibros() {
     const tabla = document.getElementById("tablaLibros");
-    tabla.innerHTML = "";
+    const data = obtenerLibrosFiltrados();
+    const totalPaginas = Math.max(1, Math.ceil(data.length / REGISTROS_POR_PAGINA));
+    if (librosPaginaActual > totalPaginas) librosPaginaActual = totalPaginas;
+    const inicio = (librosPaginaActual - 1) * REGISTROS_POR_PAGINA;
+    const paginaData = data.slice(inicio, inicio + REGISTROS_POR_PAGINA);
 
-    data.forEach(l => {
+    tabla.innerHTML = "";
+    if (!paginaData.length) {
+        tabla.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Sin resultados.</td></tr>`;
+    }
+
+    paginaData.forEach(l => {
         tabla.innerHTML += `
             <tr>
                 <td>${l.titulo}</td>
@@ -215,6 +246,26 @@ async function cargarLibros() {
             </tr>
         `;
     });
+
+    renderizarPaginacionLibros(totalPaginas);
+}
+
+function renderizarPaginacionLibros(totalPaginas) {
+    const paginacion = document.getElementById("paginacionLibros");
+    paginacion.innerHTML = "";
+
+    for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+        paginacion.innerHTML += `
+            <li class="page-item ${pagina === librosPaginaActual ? "active" : ""}">
+                <button class="page-link" type="button" onclick="irPaginaLibros(${pagina})">${pagina}</button>
+            </li>
+        `;
+    }
+}
+
+function irPaginaLibros(pagina) {
+    librosPaginaActual = pagina;
+    renderizarTablaLibros();
 }
 
 async function cargarEjemplares(libro_id) {
@@ -248,18 +299,8 @@ async function cargarEjemplares(libro_id) {
 }
 //Filtrar libros
 function filtrarLibros() {
-    const filtro = document.getElementById("buscadorLibros").value.toLowerCase();
-    const filas = document.querySelectorAll("#tablaLibros tr");
-
-    filas.forEach(fila => {
-        const texto = fila.innerText.toLowerCase();
-
-        if (texto.includes(filtro)) {
-            fila.style.display = "";
-        } else {
-            fila.style.display = "none";
-        }
-    });
+    librosPaginaActual = 1;
+    renderizarTablaLibros();
 }
 // ================= CREAR =================
 async function crearLibro() {

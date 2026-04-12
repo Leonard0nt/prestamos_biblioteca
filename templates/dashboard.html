@@ -55,7 +55,9 @@
                     <tbody id="tablaPrestamos"></tbody>
                 </table>
             </div>
-
+            <nav class="mt-3" aria-label="Paginación préstamos">
+                <ul class="pagination justify-content-center mb-0" id="paginacionPrestamos"></ul>
+            </nav>
         </div>
     </div>
 
@@ -94,6 +96,9 @@
         const API = "http://127.0.0.1:8000";
         const modalCrear = document.getElementById("modalCrear");
 
+        const REGISTROS_POR_PAGINA = 20;
+        let prestamosData = [];
+        let prestamosPaginaActual = 1;
         function sumarDiasHabiles(fechaBase, diasHabiles) {
             const fecha = new Date(fechaBase);
             let restantes = diasHabiles;
@@ -151,12 +156,38 @@ async function cargarEjemplaresLibro() {
         // ================= CARGAR =================
         async function cargarPrestamos() {
             const res = await fetch(`${API}/prestamos/`);
-            const data = await res.json();
+            prestamosData = await res.json();
+            prestamosPaginaActual = 1;
+            renderizarTablaPrestamos();
+        }
 
+        function obtenerPrestamosFiltrados() {
+            const filtro = document.getElementById("buscadorPrestamos").value.toLowerCase();
+            return prestamosData.filter((prestamo) => {
+                return (
+                    prestamo.usuario_detalle.toLowerCase().includes(filtro) ||
+                    prestamo.ejemplar_detalle.toLowerCase().includes(filtro) ||
+                    prestamo.fecha_prestamo.toLowerCase().includes(filtro) ||
+                    prestamo.fecha_devolucion.toLowerCase().includes(filtro)
+                );
+            });
+        }
+
+
+        function renderizarTablaPrestamos() {
             const tabla = document.getElementById("tablaPrestamos");
-            tabla.innerHTML = "";
+            const data = obtenerPrestamosFiltrados();
+            const totalPaginas = Math.max(1, Math.ceil(data.length / REGISTROS_POR_PAGINA));
+            if (prestamosPaginaActual > totalPaginas) prestamosPaginaActual = totalPaginas;
+            const inicio = (prestamosPaginaActual - 1) * REGISTROS_POR_PAGINA;
+            const paginaData = data.slice(inicio, inicio + REGISTROS_POR_PAGINA);
 
-            data.forEach(p => {
+            tabla.innerHTML = "";
+            if (!paginaData.length) {
+                tabla.innerHTML = `<tr><td colspan="7" class="text-center text-muted">Sin resultados.</td></tr>`;
+            }
+
+            paginaData.forEach(p => {
                 tabla.innerHTML += `
             <tr>
                 <td>${p.usuario_detalle}</td>
@@ -178,6 +209,26 @@ async function cargarEjemplaresLibro() {
             </tr>
         `;
             });
+
+            renderizarPaginacionPrestamos(totalPaginas);
+        }
+
+        function renderizarPaginacionPrestamos(totalPaginas) {
+            const paginacion = document.getElementById("paginacionPrestamos");
+            paginacion.innerHTML = "";
+
+            for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+                paginacion.innerHTML += `
+                    <li class="page-item ${pagina === prestamosPaginaActual ? "active" : ""}">
+                        <button class="page-link" type="button" onclick="irPaginaPrestamos(${pagina})">${pagina}</button>
+                    </li>
+                `;
+            }
+        }
+
+        function irPaginaPrestamos(pagina) {
+            prestamosPaginaActual = pagina;
+            renderizarTablaPrestamos();
         }
 
         // ================= BADGE =================
@@ -262,13 +313,8 @@ async function cargarSelects() {
 
         // ================= FILTRO =================
         function filtrarPrestamos() {
-            const filtro = document.getElementById("buscadorPrestamos").value.toLowerCase();
-            const filas = document.querySelectorAll("#tablaPrestamos tr");
-
-            filas.forEach(f => {
-                const texto = f.innerText.toLowerCase();
-                f.style.display = texto.includes(filtro) ? "" : "none";
-            });
+            prestamosPaginaActual = 1;
+            renderizarTablaPrestamos();
         }
 
         // ================= INIT =================

@@ -54,6 +54,9 @@ thead th {
             <tbody id="tablaUsuarios"></tbody>
         </table>
     </div>
+    <nav class="mt-3" aria-label="Paginación usuarios">
+        <ul class="pagination justify-content-center mb-0" id="paginacionUsuarios"></ul>
+    </nav>
 
     </div>
 </div>
@@ -127,16 +130,43 @@ thead th {
 
 <script>
 const API = "http://127.0.0.1:8000";
+const REGISTROS_POR_PAGINA = 20;
+let usuariosData = [];
+let usuariosPaginaActual = 1;
 
 // ================= CARGAR =================
 async function cargarUsuarios() {
     const res = await fetch(`${API}/usuarios/`);
-    const data = await res.json();
+    usuariosData = await res.json();
+    usuariosPaginaActual = 1;
+    renderizarTablaUsuarios();
+}
 
+function obtenerUsuariosFiltrados() {
+    const filtro = document.getElementById("buscadorUsuarios").value.toLowerCase();
+    return usuariosData.filter((usuario) => {
+        return (
+            usuario.nombre.toLowerCase().includes(filtro) ||
+            usuario.rut.toLowerCase().includes(filtro) ||
+            usuario.email.toLowerCase().includes(filtro)
+        );
+    });
+}
+
+function renderizarTablaUsuarios() {
     const tabla = document.getElementById("tablaUsuarios");
-    tabla.innerHTML = "";
+    const data = obtenerUsuariosFiltrados();
+    const totalPaginas = Math.max(1, Math.ceil(data.length / REGISTROS_POR_PAGINA));
+    if (usuariosPaginaActual > totalPaginas) usuariosPaginaActual = totalPaginas;
+    const inicio = (usuariosPaginaActual - 1) * REGISTROS_POR_PAGINA;
+    const paginaData = data.slice(inicio, inicio + REGISTROS_POR_PAGINA);
 
-    data.forEach(u => {
+    tabla.innerHTML = "";
+    if (!paginaData.length) {
+        tabla.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Sin resultados.</td></tr>`;
+    }
+
+    paginaData.forEach(u => {
         tabla.innerHTML += `
             <tr>
                 <td>${u.nombre}</td>
@@ -154,6 +184,26 @@ async function cargarUsuarios() {
             </tr>
         `;
     });
+
+    renderizarPaginacionUsuarios(totalPaginas);
+}
+
+function renderizarPaginacionUsuarios(totalPaginas) {
+    const paginacion = document.getElementById("paginacionUsuarios");
+    paginacion.innerHTML = "";
+
+    for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+        paginacion.innerHTML += `
+            <li class="page-item ${pagina === usuariosPaginaActual ? "active" : ""}">
+                <button class="page-link" type="button" onclick="irPaginaUsuarios(${pagina})">${pagina}</button>
+            </li>
+        `;
+    }
+}
+
+function irPaginaUsuarios(pagina) {
+    usuariosPaginaActual = pagina;
+    renderizarTablaUsuarios();
 }
 // Formatear RUT
 function formatearRUT(input) {
@@ -172,18 +222,8 @@ function formatearRUT(input) {
 } 
 // Filtrar usuarios
 function filtrarUsuarios() {
-    const filtro = document.getElementById("buscadorUsuarios").value.toLowerCase();
-    const filas = document.querySelectorAll("#tablaUsuarios tr");
-
-    filas.forEach(fila => {
-        const texto = fila.innerText.toLowerCase();
-
-        if (texto.includes(filtro)) {
-            fila.style.display = "";
-        } else {
-            fila.style.display = "none";
-        }
-    });
+    usuariosPaginaActual = 1;
+    renderizarTablaUsuarios();
 }
 
 function validarRUT(input) {

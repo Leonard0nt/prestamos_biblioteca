@@ -49,6 +49,9 @@ thead th {
                     <tbody id="tablaEncargados"></tbody>
                 </table>
             </div>
+            <nav class="mt-3" aria-label="Paginación encargados">
+                <ul class="pagination justify-content-center mb-0" id="paginacionEncargados"></ul>
+            </nav>
         </div>
     </div>
 
@@ -105,7 +108,9 @@ thead th {
 
 <script>
 const API = "http://127.0.0.1:8000";
-
+const REGISTROS_POR_PAGINA = 20;
+let encargadosData = [];
+let encargadosPaginaActual = 1;
 
 function getCookie(name) {
     const value = `; ${document.cookie}`;
@@ -173,12 +178,42 @@ async function cargarEncargados() {
     if (!res.ok) {
         document.getElementById("tablaEncargados").innerHTML = `<tr><td colspan="5">Debes iniciar sesión como administrador para gestionar encargados.</td></tr>`;
     }
+        document.getElementById("paginacionEncargados").innerHTML = "";
+        encargadosData = [];
+        encargadosPaginaActual = 1;
+        return;
+    encargadosData = await res.json();
+    encargadosPaginaActual = 1;
+    renderizarTablaEncargados();
+}
 
-    const data = await res.json();
+function obtenerEncargadosFiltrados() {
+    const filtro = document.getElementById("buscadorEncargados").value.toLowerCase();
+    return encargadosData.filter((encargado) => {
+        return (
+            encargado.nombre.toLowerCase().includes(filtro) ||
+            encargado.rut.toLowerCase().includes(filtro) ||
+            encargado.correo.toLowerCase().includes(filtro)
+        );
+    });
+}
+
+function renderizarTablaEncargados() {
+    const data = obtenerEncargadosFiltrados();
     const tabla = document.getElementById("tablaEncargados");
-    tabla.innerHTML = "";
+    const totalPaginas = Math.max(1, Math.ceil(data.length / REGISTROS_POR_PAGINA));
+    if (encargadosPaginaActual > totalPaginas) encargadosPaginaActual = totalPaginas;
+    const inicio = (encargadosPaginaActual - 1) * REGISTROS_POR_PAGINA;
+    const paginaData = data.slice(inicio, inicio + REGISTROS_POR_PAGINA);
 
-    data.forEach(e => {
+    tabla.innerHTML = "";
+    if (!paginaData.length) {
+        tabla.innerHTML = `<tr><td colspan="5" class="text-center text-muted">Sin resultados.</td></tr>`;
+    }
+
+
+
+    paginaData.forEach(e => {
         tabla.innerHTML += `
             <tr>
                 <td>${e.nombre}</td>
@@ -196,16 +231,31 @@ async function cargarEncargados() {
             </tr>
         `;
     });
+
+    renderizarPaginacionEncargados(totalPaginas);
+}
+
+function renderizarPaginacionEncargados(totalPaginas) {
+    const paginacion = document.getElementById("paginacionEncargados");
+    paginacion.innerHTML = "";
+
+    for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+        paginacion.innerHTML += `
+            <li class="page-item ${pagina === encargadosPaginaActual ? "active" : ""}">
+                <button class="page-link" type="button" onclick="irPaginaEncargados(${pagina})">${pagina}</button>
+            </li>
+        `;
+    }
+}
+
+function irPaginaEncargados(pagina) {
+    encargadosPaginaActual = pagina;
+    renderizarTablaEncargados();
 }
 
 function filtrarEncargados() {
-    const filtro = document.getElementById("buscadorEncargados").value.toLowerCase();
-    const filas = document.querySelectorAll("#tablaEncargados tr");
-
-    filas.forEach(fila => {
-        const texto = fila.innerText.toLowerCase();
-        fila.style.display = texto.includes(filtro) ? "" : "none";
-    });
+    encargadosPaginaActual = 1;
+    renderizarTablaEncargados();
 }
 
 async function crearEncargado() {
