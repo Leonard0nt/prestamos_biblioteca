@@ -95,6 +95,7 @@
     <script>
         const API = "http://127.0.0.1:8000";
         const modalCrear = document.getElementById("modalCrear");
+        const csrfToken = getCookie("csrftoken");
 
         const REGISTROS_POR_PAGINA = 20;
         let prestamosData = [];
@@ -125,6 +126,21 @@
             const hoy = new Date();
             const fechaDefault = sumarDiasHabiles(hoy, 7);
             fechaInput.value = formatearFechaISO(fechaDefault);
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === `${name}=`) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
         }
         // ================= CARGAR EJEMPLARES =================
 async function cargarEjemplaresLibro() {
@@ -271,7 +287,10 @@ async function cargarSelects() {
 
             const response = await fetch(`${API}/prestamos/`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": csrfToken
+                },
                 body: JSON.stringify({
                     usuario,
                     ejemplar,
@@ -294,7 +313,10 @@ async function cargarSelects() {
         async function devolver(id) {
 
             await fetch(`${API}/prestamos/${id}/devolver/`, {
-                method: "POST"
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": csrfToken
+                }
             });
             cargarPrestamos();
         }
@@ -305,7 +327,10 @@ async function cargarSelects() {
             if (!confirm("¿Archivar préstamo?")) return;
 
             await fetch(`${API}/prestamos/${id}/`, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: {
+                    "X-CSRFToken": csrfToken
+                }
             });
 
             cargarPrestamos();
