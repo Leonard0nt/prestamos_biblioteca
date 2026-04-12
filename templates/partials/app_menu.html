@@ -90,8 +90,7 @@
         <button class="settings-btn" type="button" data-bs-toggle="modal" data-bs-target="#modalConfiguracionCuenta" title="Configurar cuenta">
             ⚙️
         </button>
-        <h1>📚 Sistema de Biblioteca</h1>
-        <p class="mb-0">Navega entre módulos sin volver atrás manualmente.</p>
+        <h1>📚 Sistema de Prestamos para Biblioteca</h1>
         <small class="d-block mt-2">Rol: {% if request.user.is_superuser %}Administrador{% else %}Encargado{% endif %}</small>
         <a href="/logout/" class="btn btn-sm btn-light mt-3">Cerrar sesión</a>
     </header>
@@ -139,6 +138,26 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalConfirmarPasswordActual" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar cambios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label" for="confirm_current_password">Contraseña actual</label>
+                <input class="form-control" id="confirm_current_password" type="password" placeholder="Ingresa tu contraseña actual" autocomplete="current-password">
+                <div class="small text-secondary mt-2">Para guardar cambios del administrador/encargado debes confirmar con tu contraseña actual.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarGuardarCuenta">Confirmar y guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function getCookie(name) {
         const value = `; ${document.cookie}`;
@@ -149,13 +168,16 @@
 
     const formConfiguracionCuenta = document.getElementById('formConfiguracionCuenta');
     const configFeedback = document.getElementById('configFeedback');
+    const modalConfirmarPasswordElement = document.getElementById('modalConfirmarPasswordActual');
+    const inputCurrentPassword = document.getElementById('confirm_current_password');
+    const btnConfirmarGuardarCuenta = document.getElementById('btnConfirmarGuardarCuenta');
 
-    formConfiguracionCuenta.addEventListener('submit', async (event) => {
-        event.preventDefault();
+    async function enviarActualizacionCuenta() {
         configFeedback.className = 'small mt-2 text-secondary';
         configFeedback.innerText = 'Guardando...';
 
         const formData = new FormData(formConfiguracionCuenta);
+        formData.append('current_password', inputCurrentPassword.value);
 
         const response = await fetch('/mi-cuenta/actualizar/', {
             method: 'POST',
@@ -176,6 +198,30 @@
         configFeedback.className = 'small mt-2 text-success';
         configFeedback.innerText = data.detail || 'Configuración actualizada.';
         document.getElementById('config_password').value = '';
+        inputCurrentPassword.value = '';
+        bootstrap.Modal.getInstance(modalConfirmarPasswordElement)?.hide();
         setTimeout(() => window.location.reload(), 500);
+    }
+
+    formConfiguracionCuenta.addEventListener('submit', (event) => {
+        event.preventDefault();
+        configFeedback.className = 'small mt-2 text-secondary';
+        configFeedback.innerText = 'Confirma con tu contraseña actual para guardar.';
+
+        const modalConfirmarPassword = new bootstrap.Modal(modalConfirmarPasswordElement);
+        inputCurrentPassword.value = '';
+        modalConfirmarPassword.show();
+        setTimeout(() => inputCurrentPassword.focus(), 200);
+    });
+
+    btnConfirmarGuardarCuenta.addEventListener('click', async () => {
+        if (!inputCurrentPassword.value.trim()) {
+            configFeedback.className = 'small mt-2 text-danger';
+            configFeedback.innerText = 'Debes ingresar tu contraseña actual para confirmar.';
+            inputCurrentPassword.focus();
+            return;
+        }
+
+        await enviarActualizacionCuenta();
     });
 </script>

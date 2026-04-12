@@ -13,6 +13,9 @@ from .models import EncargadoBiblioteca, usuario
 from .serializers import EncargadoBibliotecaSerializer, UsuarioSerializer
 
 
+SESSION_TIMEOUT_SECONDS = 9 * 60 * 60
+
+
 def login_view(request):
     if request.user.is_authenticated:
         return redirect(_landing_url(request.user))
@@ -26,6 +29,7 @@ def login_view(request):
             messages.error(request, 'Usuario o contraseña incorrectos.')
         else:
             login(request, user)
+            request.session.set_expiry(SESSION_TIMEOUT_SECONDS)
             if user.is_superuser:
                 messages.success(request, 'Inicio de sesión exitoso: perfil administrador.')
             elif hasattr(user, 'encargado'):
