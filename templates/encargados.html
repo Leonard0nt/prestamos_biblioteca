@@ -177,11 +177,12 @@ async function cargarEncargados() {
 
     if (!res.ok) {
         document.getElementById("tablaEncargados").innerHTML = `<tr><td colspan="5">Debes iniciar sesión como administrador para gestionar encargados.</td></tr>`;
-    }
+    
         document.getElementById("paginacionEncargados").innerHTML = "";
         encargadosData = [];
         encargadosPaginaActual = 1;
         return;
+    }
     encargadosData = await res.json();
     encargadosPaginaActual = 1;
     renderizarTablaEncargados();
